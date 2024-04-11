@@ -8,4 +8,5 @@ REGARDS
 TEAM PANCHA-THON
 
 
-API USED: [open-meteo](https://open-meteo.com)
+API used: [open-meteo](https://open-meteo.com)
+Python Modules/librarys used: Flask, functools and geopy
