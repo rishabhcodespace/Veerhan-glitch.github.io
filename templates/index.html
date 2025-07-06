@@ -1,87 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Floating Search Box with World Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        /* Centering the map */
-        #map {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1; /* Ensure it's behind other content */
-        }
-
-        /* Style for search container */
-        .search-container {
-            position: fixed;
-            top: 35%;  left: 50%;
-            transition: top 0.5s ease;  /* Add transition for smooth movement */
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-        }
-
-        /* Styles for the search box when clicked */
-        .search-box:focus + .search-container {
-            top: 80%;  /* Move container to bottom on focus */
-        }
-
-        /* Styles for the search box */
-        .search-box {
-            padding: 10px;
-            border: 2px solid #ccc;
-            border-radius: 5px;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: 300px;
-            outline: none;
-        }
-
-        .search-button {
-            padding: 10px 20px;
-            border: none;
-            background-color: #007bff;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather + AQI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    #map {
+      position: fixed; top: 0; left: 0;
+      height: 100%; width: 100%;
+      z-index: -1;
+    }
+    .search-container {
+      position: fixed; top: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px #00000055;
+    }
+    .info-box {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px #00000055;
+      font-family: sans-serif;
+      min-width: 300px;
+      max-width: 90%;
+    }
+    .info-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .info-section {
+      flex: 1 1 250px;
+    }
+    .info-section u {
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
+  <div id="map"></div>
 
-    <div class="search-container">
-        <input type="text" class="search-box" placeholder="Search location...">
-        <button class="search-button">Search</button>
-    </div>
+  <div class="search-container">
+    <input type="text" class="search-box" placeholder="Search location..."/>
+    <button class="search-button">Search</button>
+    <span id="status-message" style="margin-left: 10px;"></span>
+  </div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        // Initialize the map
-        var map = L.map('map').setView([0, 0], 2); // Center at (0,0) with zoom level 2
+  <div class="info-box" id="weather-info">Click map or use search to get weather & AQI</div>
 
-        // Add OpenStreetMap tiles as the base layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-        }).addTo(map);
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map = L.map('map').setView([20, 78], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-        // Function to handle search and move map
-        function searchLocation() {
-            var searchTerm = document.querySelector('.search-box').value;
-            // Replace with your logic to find coordinates based on search term
-            // This is just a placeholder example, replace with actual geocoding logic
-            
-            var targetCoords = [28.6273928, 77.1716954];
-            map.flyTo(targetCoords, 13);  // Fly to location with zoom level 13
-        // Add event listener to search button}
-        }
-        document.querySelector('.search-button').addEventListener('click', searchLocation);
-    </script>
-    {{a}}
+    let marker = null;
+
+    function aqiLabel(aqi) {
+      return ['Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'][aqi - 1] || 'Unavailable';
+    }
+
+    function aqiColor(aqi) {
+      return ['#009966', '#ffde33', '#ff9933', '#cc0033', '#660099'][aqi - 1] || '#888';
+    }
+
+    function showData(data) {
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([data.latitude, data.longitude]).addTo(map)
+        .bindPopup(`<b>${data.location}</b>`).openPopup();
+
+      map.flyTo([data.latitude, data.longitude], 10);
+
+      const w = data.weather;
+      const a = data.aqi;
+
+      document.getElementById("weather-info").innerHTML = `
+        <b>${data.location}</b><br/><br/>
+        <div class="info-content">
+          <div class="info-section">
+            <u>Weather:</u><br/>
+            Temp: ${w.temperature_2m}°C<br/>
+            Feels like: ${w.apparent_temperature.toFixed(1)}°C<br/>
+            Humidity: ${w.humidity}%<br/>
+            Cloud Cover: ${w.cloud_cover}%<br/>
+            Wind: ${w.wind_speed_10m} km/h (${w.wind_direction_10m}°)<br/>
+            Pressure: ${w.pressure_msl} hPa<br/>
+            Precipitation: ${w.precipitation} mm<br/>
+          </div>
+          <div class="info-section">
+            <u>Air Quality:</u><br/>
+            AQI: ${
+              a.aqi_index === -1
+                ? "Unavailable"
+                : `<span style="color:${aqiColor(a.aqi_index)}">${a.aqi_index} (${aqiLabel(a.aqi_index)})</span>`
+            }<br/>
+            PM2.5: ${a.pm2_5 ?? '–'} µg/m³<br/>
+            PM10: ${a.pm10 ?? '–'} µg/m³<br/>
+            NO₂: ${a.no2 ?? '–'} µg/m³<br/>
+            O₃: ${a.o3 ?? '–'} µg/m³
+          </div>
+        </div>
+      `;
+    }
+
+    function searchLocation() {
+      const searchTerm = document.querySelector('.search-box').value;
+      document.getElementById('status-message').textContent = "⏳ Loading...";
+      fetch(`/search?term=${encodeURIComponent(searchTerm)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById("status-message").textContent = `❌ ${data.error}`;
+          } else {
+            document.getElementById("status-message").textContent = "";
+            showData(data);
+          }
+        })
+        .catch(() => {
+          document.getElementById("status-message").textContent = "❌ Request failed";
+        });
+    }
+
+    document.querySelector('.search-button').addEventListener('click', searchLocation);
+    document.querySelector('.search-box').addEventListener('keypress', e => {
+      if (e.key === 'Enter') searchLocation();
+    });
+
+    map.on('click', e => {
+      const { lat, lng } = e.latlng;
+      document.getElementById('status-message').textContent = "📍 Fetching location info...";
+      fetch(`/reverse?lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById("status-message").textContent = `❌ ${data.error}`;
+          } else {
+            document.getElementById("status-message").textContent = "";
+            showData(data);
+          }
+        })
+        .catch(() => {
+          document.getElementById("status-message").textContent = "❌ Request failed";
+        });
+    });
+  </script>
 </body>
 </html>
