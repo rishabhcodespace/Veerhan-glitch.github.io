@@ -90,6 +90,7 @@ requests-cache
 retry-requests
 openmeteo-requests
 python-dotenv
+gunicorn
 ```
 
 ---

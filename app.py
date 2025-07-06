@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, jsonify
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
@@ -124,5 +126,7 @@ def reverse_lookup():
         "aqi": aqi
     })
 
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    if os.environ.get("FLASK_ENV") != "production":
+        app.run(debug=True)
