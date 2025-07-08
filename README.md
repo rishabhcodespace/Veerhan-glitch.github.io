@@ -103,3 +103,12 @@ gunicorn
 ![screenshot](demo.png)
 
 ---
+
+## contributer 
+
+```text
+Praveer Singh Chauhan
+Rishsbh Kumar
+Satvik Singh
+Naman tomar
+rahul kumar
